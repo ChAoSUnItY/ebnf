@@ -7,3 +7,4 @@ edition = "2021"
 
 [dependencies]
 nom = "7"
+parse-hyperlinks = "0.23.3"

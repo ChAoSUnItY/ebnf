@@ -1,15 +1,19 @@
 use nom::{
     branch::alt,
-    bytes::complete::{tag, take_till, take_until, take_while1},
+    bytes::complete::{tag, take_until},
     character::complete,
-    combinator::complete,
-    error::VerboseError,
+    error::{VerboseError, VerboseErrorKind},
     multi::many1,
     sequence::{delimited, preceded, terminated},
-    IResult,
+    Err, IResult,
 };
 
-use crate::{node::SymbolKind, Expression, Grammar, Node};
+use parse_hyperlinks::take_until_unbalanced;
+
+use crate::{
+    node::{RegexExtKind, SymbolKind},
+    Expression, Grammar, Node,
+};
 
 type Res<T, U> = IResult<T, U, VerboseError<T>>;
 
@@ -36,6 +40,15 @@ fn parse_string(input: &str) -> Res<&str, Node> {
     ))(input)?;
 
     Ok((input, Node::String(string.to_string())))
+}
+
+fn parse_regex_string(input: &str) -> Res<&str, Node> {
+    let (input, string) = alt((
+        delimited(tag("#'"), take_until("'"), complete::char('\'')),
+        delimited(tag("#\""), take_until("\""), complete::char('"')),
+    ))(input)?;
+
+    Ok((input, Node::RegexString(string.to_string())))
 }
 
 fn parse_int(input: &str) -> Res<&str, Node> {
@@ -72,13 +85,30 @@ fn parse_multiple(input: &str) -> Res<&str, Node> {
 }
 
 fn parse_node(input: &str) -> Res<&str, Node> {
-    let (input, left_node) = preceded(
+    let (mut input, mut left_node) = preceded(
         complete::multispace0,
-        alt((parse_group, parse_string, parse_int, parse_terminal)),
+        alt((
+            parse_group,
+            parse_optional,
+            parse_repeat,
+            parse_string,
+            parse_regex_string,
+            parse_int,
+            parse_terminal,
+        )),
     )(input)?;
 
-    let optional_symbol: Res<&str, (SymbolKind, Node)> =
-        preceded(complete::multispace0, parse_symbol)(input);
+    let optional_regex_ext: Res<&str, RegexExtKind> = parse_regex_ext(input);
+
+    match optional_regex_ext {
+        Ok(((s, regex_ext_kind))) => {
+            input = s;
+            left_node = Node::RegexExt(Box::new(left_node), regex_ext_kind);
+        }
+        Err(_) => {}
+    }
+
+    let optional_symbol: Res<&str, (SymbolKind, Node)> = parse_symbol(input);
 
     match optional_symbol {
         Ok((input, (symbol, right_node))) => Ok((
@@ -87,6 +117,26 @@ fn parse_node(input: &str) -> Res<&str, Node> {
         )),
         Err(_) => Ok((input, left_node)),
     }
+}
+
+fn parse_regex_ext(input: &str) -> Res<&str, RegexExtKind> {
+    let (input, regex_ext) = preceded(
+        complete::multispace0,
+        alt((
+            complete::char('*'),
+            complete::char('+'),
+            complete::char('?'),
+        )),
+    )(input)?;
+
+    let regex_kind = match regex_ext {
+        '*' => RegexExtKind::Repeat0,
+        '+' => RegexExtKind::Repeat1,
+        '?' => RegexExtKind::Optional,
+        _ => unreachable!("Unexpected regex extension symbol. this should not happen"),
+    };
+
+    Ok((input, regex_kind))
 }
 
 fn parse_symbol(input: &str) -> Res<&str, (SymbolKind, Node)> {
@@ -127,14 +177,44 @@ fn parse_repetition(input: &str) -> Res<&str, (SymbolKind, Node)> {
     Ok((input, (SymbolKind::Repetition, node)))
 }
 
+fn parse_delimited_node(
+    input: &str,
+    opening_bracket: char,
+    closing_bracket: char,
+) -> Res<&str, &str> {
+    let result = delimited(
+        tag(opening_bracket.to_string().as_str()),
+        take_until_unbalanced(opening_bracket, closing_bracket),
+        tag(closing_bracket.to_string().as_str()),
+    )(input);
+
+    match result {
+        Ok((input, inner)) => Ok((input, inner)),
+        Err(_) => Err(Err::Error(VerboseError {
+            errors: vec![(input, VerboseErrorKind::Context("Incomplete delimited node"))],
+        })),
+    }
+}
+
 fn parse_group(input: &str) -> Res<&str, Node> {
-    let (input, inner) = preceded(
-        complete::multispace0,
-        delimited(complete::char('('), take_until(")"), complete::char(')')),
-    )(input)?;
+    let (input, inner) = parse_delimited_node(input, '(', ')')?;
     let (_, node) = preceded(complete::multispace0, parse_multiple)(inner)?;
 
     Ok((input, Node::Group(Box::new(node))))
+}
+
+fn parse_optional(input: &str) -> Res<&str, Node> {
+    let (input, inner) = parse_delimited_node(input, '[', ']')?;
+    let (_, node) = preceded(complete::multispace0, parse_multiple)(inner)?;
+
+    Ok((input, Node::Optional(Box::new(node))))
+}
+
+fn parse_repeat(input: &str) -> Res<&str, Node> {
+    let (input, inner) = parse_delimited_node(input, '{', '}')?;
+    let (_, node) = preceded(complete::multispace0, parse_multiple)(inner)?;
+
+    Ok((input, Node::Repeat(Box::new(node))))
 }
 
 fn parse_expressions(input: &str) -> Res<&str, Vec<Expression>> {
@@ -162,12 +242,14 @@ mod test {
     #[test]
     fn test_parse() {
         let src = r"
-            a ::= ('b' 'c' * 3) 'b';
-            b ::= c;
+            Filter ::= ( First ' ' )? ( Number '~ ' )? ( Number '-' Number ) ( ' ' Number '~' )? ( ' Hz' )? ( ' B' )? ( ' I' )? ( ' A' )?;
+            First  ::= #'[A-Za-z][A-Za-z0-9_+]*';
+            Number ::= Digits ( ( '.' | ',' ) Digits? )?;
+            Digits ::= #'[0-9]+';
         ";
 
         let (input, vec) = parse_expressions(src).unwrap();
 
-        println!("{:?}", vec);
+        println!("{:#?}", vec);
     }
 }
