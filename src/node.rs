@@ -2,7 +2,6 @@
 pub enum Node {
     String(String),
     RegexString(String),
-    Int(i32),
     Terminal(String),
     Multiple(Vec<Node>),
     RegexExt(Box<Node>, RegexExtKind),
@@ -24,6 +23,4 @@ pub enum RegexExtKind {
 pub enum SymbolKind {
     Concatenation,
     Alternation,
-    Exception,
-    Repetition
 }

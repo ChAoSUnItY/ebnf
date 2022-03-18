@@ -51,21 +51,6 @@ fn parse_regex_string(input: &str) -> Res<&str, Node> {
     Ok((input, Node::RegexString(string.to_string())))
 }
 
-fn parse_int(input: &str) -> Res<&str, Node> {
-    let (input, int) = preceded(
-        complete::multispace0,
-        terminated(complete::digit1, complete::multispace0),
-    )(input)?;
-
-    Ok((
-        input,
-        Node::Int(
-            int.parse::<i32>()
-                .expect("Unable to parse int, this should not happen"),
-        ),
-    ))
-}
-
 fn parse_terminal(input: &str) -> Res<&str, Node> {
     let (input, symbol) = preceded(
         complete::multispace0,
@@ -93,7 +78,6 @@ fn parse_node(input: &str) -> Res<&str, Node> {
             parse_repeat,
             parse_string,
             parse_regex_string,
-            parse_int,
             parse_terminal,
         )),
     )(input)?;
@@ -142,12 +126,7 @@ fn parse_regex_ext(input: &str) -> Res<&str, RegexExtKind> {
 fn parse_symbol(input: &str) -> Res<&str, (SymbolKind, Node)> {
     let (input, symbol_pair) = preceded(
         complete::multispace0,
-        alt((
-            parse_concatenation,
-            parse_alternation,
-            parse_exception,
-            parse_repetition,
-        )),
+        alt((parse_concatenation, parse_alternation)),
     )(input)?;
 
     Ok((input, symbol_pair))
@@ -165,18 +144,6 @@ fn parse_alternation(input: &str) -> Res<&str, (SymbolKind, Node)> {
     Ok((input, (SymbolKind::Alternation, node)))
 }
 
-fn parse_exception(input: &str) -> Res<&str, (SymbolKind, Node)> {
-    let (input, node) = preceded(complete::char('-'), parse_multiple)(input)?;
-
-    Ok((input, (SymbolKind::Exception, node)))
-}
-
-fn parse_repetition(input: &str) -> Res<&str, (SymbolKind, Node)> {
-    let (input, node) = preceded(complete::char('*'), parse_multiple)(input)?;
-
-    Ok((input, (SymbolKind::Repetition, node)))
-}
-
 fn parse_delimited_node(
     input: &str,
     opening_bracket: char,
@@ -191,7 +158,10 @@ fn parse_delimited_node(
     match result {
         Ok((input, inner)) => Ok((input, inner)),
         Err(_) => Err(Err::Error(VerboseError {
-            errors: vec![(input, VerboseErrorKind::Context("Incomplete delimited node"))],
+            errors: vec![(
+                input,
+                VerboseErrorKind::Context("Incomplete delimited node"),
+            )],
         })),
     }
 }
