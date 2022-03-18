@@ -1,113 +1,169 @@
-use nom::{error::VerboseError, IResult};
+use nom::{
+    branch::alt,
+    bytes::complete::{tag, take_till, take_until, take_while1},
+    character::complete,
+    combinator::complete,
+    error::VerboseError,
+    multi::many1,
+    sequence::{delimited, preceded, terminated},
+    IResult,
+};
 
-use crate::{Expression, Grammar, Node};
+use crate::{node::SymbolKind, Expression, Grammar, Node};
 
 type Res<T, U> = IResult<T, U, VerboseError<T>>;
 
-// fn expression_complete(input: &str) -> Res<&str, Expression> {
-//     context(
-//         "expression",
-//         separated_pair(first, sep, second)
-// )(input)
-// }
+fn parse_lhs(input: &str) -> Res<&str, &str> {
+    let (input, lhs) = preceded(complete::multispace0, complete::alphanumeric1)(input)?;
+    let (input, _) = preceded(complete::multispace0, alt((tag("="), tag("::="))))(input)?;
 
-// fn grammar(input: &str) -> Res<&str, Grammar>  {
-//     let (input, _) = peek(expression)(input)?;
-//     let (input, exprs) = many1(complete(expression))(input)?;
+    Ok((input, lhs.trim_end()))
+}
 
-//     Ok((input, Grammar::new(exprs)))
-// }
+fn parse_rhs(input: &str) -> Res<&str, Node> {
+    let (input, rhs) = preceded(
+        complete::multispace0,
+        terminated(parse_multiple, complete::char(';')),
+    )(input)?;
 
-// fn grammar_complete(input: &str) -> Res<&str, Grammar> {
-//     let (input, g) = all_consuming(grammar)(input)?;
+    Ok((input, rhs))
+}
 
-//     Ok((input, g))
-// }
+fn parse_string(input: &str) -> Res<&str, Node> {
+    let (input, string) = alt((
+        delimited(complete::char('\''), take_until("'"), complete::char('\'')),
+        delimited(complete::char('"'), take_until("\""), complete::char('"')),
+    ))(input)?;
 
+    Ok((input, Node::String(string.to_string())))
+}
+
+fn parse_int(input: &str) -> Res<&str, Node> {
+    let (input, int) = preceded(
+        complete::multispace0,
+        terminated(complete::digit1, complete::multispace0),
+    )(input)?;
+
+    Ok((
+        input,
+        Node::Int(
+            int.parse::<i32>()
+                .expect("Unable to parse int, this should not happen"),
+        ),
+    ))
+}
+
+fn parse_terminal(input: &str) -> Res<&str, Node> {
+    let (input, symbol) = preceded(
+        complete::multispace0,
+        terminated(complete::alphanumeric1, complete::multispace0),
+    )(input)?;
+
+    Ok((input, Node::Terminal(symbol.to_string())))
+}
+
+fn parse_multiple(input: &str) -> Res<&str, Node> {
+    let (input, node) = preceded(complete::multispace0, many1(parse_node))(input)?;
+
+    match node {
+        _ if node.len() == 1 => Ok((input, node[0].clone())),
+        _ => Ok((input, Node::Multiple(node))),
+    }
+}
+
+fn parse_node(input: &str) -> Res<&str, Node> {
+    let (input, left_node) = preceded(
+        complete::multispace0,
+        alt((parse_group, parse_string, parse_int, parse_terminal)),
+    )(input)?;
+
+    let optional_symbol: Res<&str, (SymbolKind, Node)> =
+        preceded(complete::multispace0, parse_symbol)(input);
+
+    match optional_symbol {
+        Ok((input, (symbol, right_node))) => Ok((
+            input,
+            Node::Symbol(Box::new(left_node), symbol, Box::new(right_node)),
+        )),
+        Err(_) => Ok((input, left_node)),
+    }
+}
+
+fn parse_symbol(input: &str) -> Res<&str, (SymbolKind, Node)> {
+    let (input, symbol_pair) = preceded(
+        complete::multispace0,
+        alt((
+            parse_concatenation,
+            parse_alternation,
+            parse_exception,
+            parse_repetition,
+        )),
+    )(input)?;
+
+    Ok((input, symbol_pair))
+}
+
+fn parse_concatenation(input: &str) -> Res<&str, (SymbolKind, Node)> {
+    let (input, node) = preceded(complete::char(','), parse_multiple)(input)?;
+
+    Ok((input, (SymbolKind::Concatenation, node)))
+}
+
+fn parse_alternation(input: &str) -> Res<&str, (SymbolKind, Node)> {
+    let (input, node) = preceded(complete::char('|'), parse_multiple)(input)?;
+
+    Ok((input, (SymbolKind::Alternation, node)))
+}
+
+fn parse_exception(input: &str) -> Res<&str, (SymbolKind, Node)> {
+    let (input, node) = preceded(complete::char('-'), parse_multiple)(input)?;
+
+    Ok((input, (SymbolKind::Exception, node)))
+}
+
+fn parse_repetition(input: &str) -> Res<&str, (SymbolKind, Node)> {
+    let (input, node) = preceded(complete::char('*'), parse_multiple)(input)?;
+
+    Ok((input, (SymbolKind::Repetition, node)))
+}
+
+fn parse_group(input: &str) -> Res<&str, Node> {
+    let (input, inner) = preceded(
+        complete::multispace0,
+        delimited(complete::char('('), take_until(")"), complete::char(')')),
+    )(input)?;
+    let (_, node) = preceded(complete::multispace0, parse_multiple)(inner)?;
+
+    Ok((input, Node::Group(Box::new(node))))
+}
+
+fn parse_expressions(input: &str) -> Res<&str, Vec<Expression>> {
+    let mut source = input;
+    let mut expressions = Vec::<Expression>::new();
+
+    while !source.is_empty() {
+        let (input, lhs) = parse_lhs(source)?;
+        let (input, rhs) = parse_rhs(input)?;
+
+        expressions.push(Expression {
+            lhs: lhs.to_string(),
+            rhs,
+        });
+
+        source = input.trim_start();
+    }
+
+    Ok((input, expressions))
+}
 #[cfg(test)]
 mod test {
-    use nom::{
-        branch::alt,
-        bytes::complete::{tag, take_until, take_while1},
-        character::{complete, is_alphanumeric},
-        error::{Error, VerboseErrorKind},
-        sequence::{delimited, preceded, terminated}, combinator::not,
-    };
-
     use super::*;
-
-    fn parse_lhs(input: &str) -> Res<&str, &str> {
-        let (input, lhs) = preceded(
-            complete::multispace0,
-            terminated(complete::alphanumeric1, alt((tag("="), complete::multispace1))),
-        )(input)?;
-
-        Ok((input, lhs.trim()))
-    }
-
-    fn parse_rhs(input: &str) -> Res<&str, Res<&str, Node>> {
-        let (input, rhs) = preceded(
-            take_while1(|c: char| c.is_whitespace() || c == '='),
-            terminated(take_until(";"), tag(";")),
-        )(input)?;
-
-        Ok((input, parse_node(rhs)))
-    }
-
-    fn parse_string(input: &str) -> Res<&str, Node> {
-        let (input, str) = alt((
-            delimited(complete::char('\''), take_until("'"), complete::char('\'')),
-            delimited(complete::char('"'), take_until("\""), complete::char('"')),
-        ))(input)?;
-
-        Ok((input, Node::String(str.to_string())))
-    }
-
-    fn parse_symbol(input: &str) -> Res<&str, Node> {
-        let (input, symbol) = preceded(complete::multispace0, terminated(complete::alphanumeric1, complete::multispace0))(input)?;
-    
-        Ok((input, Node::Symbol(symbol.to_string())))
-    }
-
-    fn parse_node(input: &str) -> Res<&str, Node> {
-        let (input, node) = preceded(complete::multispace0, alt((parse_string, parse_symbol)))(input)?;
-
-        Ok((input, node))
-    }
-
-    fn parse_expressions(input: &str) -> Res<&str, Vec<Expression>> {
-        let mut source = input;
-        let mut expressions = Vec::<Expression>::new();
-
-        while !source.is_empty() {
-            let (input, lhs) = parse_lhs(source)?;
-            let (input, rhs) = parse_rhs(input)?;
-
-            match rhs {
-                Ok(node_result) => {
-                    let (_, node) = node_result;
-
-                    expressions.push(Expression {
-                        lhs: lhs.to_string(),
-                        rhs: vec![node],
-                    });
-                }
-                Err(err) => {
-                    return Err(err);
-                }
-            }
-
-            source = input.trim_start();
-        }
-
-        Ok((input, expressions))
-    }
 
     #[test]
     fn test_parse() {
         let src = r"
-            a = b;
-            b = c;
+            a ::= ('b' 'c' * 3) 'b';
+            b ::= c;
         ";
 
         let (input, vec) = parse_expressions(src).unwrap();
