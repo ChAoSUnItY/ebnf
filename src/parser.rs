@@ -187,7 +187,7 @@ fn parse_repeat(input: &str) -> Res<&str, Node> {
     Ok((input, Node::Repeat(Box::new(node))))
 }
 
-fn parse_expressions(input: &str) -> Res<&str, Vec<Expression>> {
+pub(crate) fn parse_expressions(input: &str) -> Res<&str, Vec<Expression>> {
     let mut source = input;
     let mut expressions = Vec::<Expression>::new();
 
