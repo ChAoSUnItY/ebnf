@@ -43,7 +43,7 @@ mod node;
 mod parser;
 pub use expression::Expression;
 pub use grammar::Grammar;
-pub use node::Node;
+pub use node::{Node, SymbolKind, RegexExtKind};
 
 // get and parse EBNF grammar source into data structure ebnf::Grammar
 pub fn get_grammar(input: &str) -> Result<Grammar, nom::Err<nom::error::VerboseError<&str>>> {
