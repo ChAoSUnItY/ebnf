@@ -13,3 +13,7 @@ keywords = ["ebnf", "bnf"]
 [dependencies]
 nom = "7"
 parse-hyperlinks = "0.23.3"
+serde = { version = "1.0", features = ["derive"] }
+
+[dev-dependencies]
+insta = { version = "1.26.0", features = ["yaml"] }
