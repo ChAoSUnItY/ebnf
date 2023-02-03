@@ -1,4 +1,4 @@
-use serde::{Serialize};
+use serde::Serialize;
 
 #[derive(Debug, Clone, Serialize)]
 pub enum Node {
@@ -18,7 +18,7 @@ pub enum Node {
 pub enum RegexExtKind {
     Repeat0,
     Repeat1,
-    Optional
+    Optional,
 }
 
 #[derive(Debug, Clone, Serialize)]

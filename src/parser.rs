@@ -20,7 +20,8 @@ type Res<T, U> = IResult<T, U, VerboseError<T>>;
 fn parse_lhs(input: &str) -> Res<&str, String> {
     let (input, lhs) = preceded(
         complete::multispace0,
-        many1(alt((complete::alphanumeric1,tag("_")))))(input)?;
+        many1(alt((complete::alphanumeric1, tag("_")))),
+    )(input)?;
     let (input, _) = preceded(complete::multispace0, alt((tag("="), tag("::="))))(input)?;
 
     Ok((input, lhs.join("").trim_end().to_owned()))
@@ -30,8 +31,9 @@ fn parse_rhs(input: &str) -> Res<&str, Node> {
     let (input, rhs) = preceded(
         complete::multispace0,
         terminated(
-            parse_multiple, 
-            preceded(complete::multispace0, complete::char(';'))),
+            parse_multiple,
+            preceded(complete::multispace0, complete::char(';')),
+        ),
     )(input)?;
 
     Ok((input, rhs))
@@ -58,9 +60,11 @@ fn parse_regex_string(input: &str) -> Res<&str, Node> {
 fn parse_terminal(input: &str) -> Res<&str, Node> {
     let (input, symbol) = preceded(
         complete::multispace0,
-        terminated(many1(alt((complete::alphanumeric1,tag("_")))), complete::multispace0),
+        terminated(
+            many1(alt((complete::alphanumeric1, tag("_")))),
+            complete::multispace0,
+        ),
     )(input)?;
-
 
     Ok((input, Node::Terminal(symbol.join(""))))
 }
@@ -230,40 +234,40 @@ mod test {
     }
     #[test]
     fn simple_alternation() {
-     let source = r"
+        let source = r"
          filter ::= a | b;
          a ::= 'a';
          b ::= 'b';
      ";
-     let result = parse_expressions(source).unwrap();
-     assert_yaml_snapshot!(result)
+        let result = parse_expressions(source).unwrap();
+        assert_yaml_snapshot!(result)
     }
     #[test]
     fn space_before_semi() {
-     let source = r"
+        let source = r"
          filter ::= a | b ;
          a ::= 'a';
          b ::= 'b';
      ";
-     let result = parse_expressions(source).unwrap();
-     assert_yaml_snapshot!(result)
+        let result = parse_expressions(source).unwrap();
+        assert_yaml_snapshot!(result)
     }
     #[test]
     fn underscore() {
-     let source = r"
+        let source = r"
          filter ::= a_b;
          a_b ::= 'a' | 'b';
      ";
-     let result = parse_expressions(source).unwrap();
-     assert_yaml_snapshot!(result)
+        let result = parse_expressions(source).unwrap();
+        assert_yaml_snapshot!(result)
     }
     #[test]
     fn multiple_underscores() {
-     let source = r"
+        let source = r"
          filter ::= a_b_cat;
          a_b_cat ::= 'a' | 'b';
      ";
-     let result = parse_expressions(source).unwrap();
-     assert_yaml_snapshot!(result)
+        let result = parse_expressions(source).unwrap();
+        assert_yaml_snapshot!(result)
     }
 }
