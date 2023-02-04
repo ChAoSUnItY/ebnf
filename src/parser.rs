@@ -12,22 +12,28 @@ use parse_hyperlinks::take_until_unbalanced;
 
 use crate::{
     node::{RegexExtKind, SymbolKind},
-    Expression, Grammar, Node,
+    Expression, Node,
 };
 
 type Res<T, U> = IResult<T, U, VerboseError<T>>;
 
-fn parse_lhs(input: &str) -> Res<&str, &str> {
-    let (input, lhs) = preceded(complete::multispace0, complete::alphanumeric1)(input)?;
+fn parse_lhs(input: &str) -> Res<&str, String> {
+    let (input, lhs) = preceded(
+        complete::multispace0,
+        many1(alt((complete::alphanumeric1, tag("_")))),
+    )(input)?;
     let (input, _) = preceded(complete::multispace0, alt((tag("="), tag("::="))))(input)?;
 
-    Ok((input, lhs.trim_end()))
+    Ok((input, lhs.join("").trim_end().to_owned()))
 }
 
 fn parse_rhs(input: &str) -> Res<&str, Node> {
     let (input, rhs) = preceded(
         complete::multispace0,
-        terminated(parse_multiple, complete::char(';')),
+        terminated(
+            parse_multiple,
+            preceded(complete::multispace0, complete::char(';')),
+        ),
     )(input)?;
 
     Ok((input, rhs))
@@ -54,10 +60,13 @@ fn parse_regex_string(input: &str) -> Res<&str, Node> {
 fn parse_terminal(input: &str) -> Res<&str, Node> {
     let (input, symbol) = preceded(
         complete::multispace0,
-        terminated(complete::alphanumeric1, complete::multispace0),
+        terminated(
+            many1(alt((complete::alphanumeric1, tag("_")))),
+            complete::multispace0,
+        ),
     )(input)?;
 
-    Ok((input, Node::Terminal(symbol.to_string())))
+    Ok((input, Node::Terminal(symbol.join(""))))
 }
 
 fn parse_multiple(input: &str) -> Res<&str, Node> {
@@ -208,6 +217,7 @@ pub(crate) fn parse_expressions(input: &str) -> Res<&str, Vec<Expression>> {
 #[cfg(test)]
 mod test {
     use super::*;
+    use insta::assert_yaml_snapshot;
 
     #[test]
     fn test_parse() {
@@ -221,5 +231,43 @@ mod test {
         let (input, vec) = parse_expressions(src).unwrap();
 
         println!("{:#?}", vec);
+    }
+    #[test]
+    fn simple_alternation() {
+        let source = r"
+         filter ::= a | b;
+         a ::= 'a';
+         b ::= 'b';
+     ";
+        let result = parse_expressions(source).unwrap();
+        assert_yaml_snapshot!(result)
+    }
+    #[test]
+    fn space_before_semi() {
+        let source = r"
+         filter ::= a | b ;
+         a ::= 'a';
+         b ::= 'b';
+     ";
+        let result = parse_expressions(source).unwrap();
+        assert_yaml_snapshot!(result)
+    }
+    #[test]
+    fn underscore() {
+        let source = r"
+         filter ::= a_b;
+         a_b ::= 'a' | 'b';
+     ";
+        let result = parse_expressions(source).unwrap();
+        assert_yaml_snapshot!(result)
+    }
+    #[test]
+    fn multiple_underscores() {
+        let source = r"
+         filter ::= a_b_cat;
+         a_b_cat ::= 'a' | 'b';
+     ";
+        let result = parse_expressions(source).unwrap();
+        assert_yaml_snapshot!(result)
     }
 }

@@ -1,4 +1,6 @@
-#[derive(Debug, Clone)]
+use serde::Serialize;
+
+#[derive(Debug, Clone, Serialize)]
 pub enum Node {
     String(String),
     RegexString(String),
@@ -12,14 +14,14 @@ pub enum Node {
     Unknown,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize)]
 pub enum RegexExtKind {
     Repeat0,
     Repeat1,
-    Optional
+    Optional,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize)]
 pub enum SymbolKind {
     Concatenation,
     Alternation,

@@ -1,0 +1,18 @@
+---
+source: src/parser.rs
+expression: result
+---
+- "\n         filter ::= a | b;\n         a ::= 'a';\n         b ::= 'b';\n     "
+- - lhs: filter
+    rhs:
+      Symbol:
+        - Terminal: a
+        - Alternation
+        - Terminal: b
+  - lhs: a
+    rhs:
+      String: a
+  - lhs: b
+    rhs:
+      String: b
+
