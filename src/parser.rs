@@ -272,19 +272,18 @@ mod test {
     }
     #[test]
     fn alternation_precidence() {
-     let source = r"
+        let source = r"
          filter ::= 'a' | 'b' 'c';
      ";
-     let result = parse_expressions(source).unwrap();
-     assert_yaml_snapshot!(result)
+        let result = parse_expressions(source).unwrap();
+        assert_yaml_snapshot!(result)
     }
     #[test]
     fn alternation_precidence_group() {
-     let source = r"
+        let source = r"
          filter ::= 'a' | ('b' 'c');
      ";
-     let result = parse_expressions(source).unwrap();
-     assert_yaml_snapshot!(result)
+        let result = parse_expressions(source).unwrap();
+        assert_yaml_snapshot!(result)
     }
-
 }
