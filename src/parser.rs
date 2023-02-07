@@ -138,13 +138,13 @@ fn parse_symbol(input: &str) -> Res<&str, (SymbolKind, Node)> {
 }
 
 fn parse_concatenation(input: &str) -> Res<&str, (SymbolKind, Node)> {
-    let (input, node) = preceded(complete::char(','), parse_multiple)(input)?;
+    let (input, node) = preceded(complete::char(','), parse_node)(input)?;
 
     Ok((input, (SymbolKind::Concatenation, node)))
 }
 
 fn parse_alternation(input: &str) -> Res<&str, (SymbolKind, Node)> {
-    let (input, node) = preceded(complete::char('|'), parse_multiple)(input)?;
+    let (input, node) = preceded(complete::char('|'), parse_node)(input)?;
 
     Ok((input, (SymbolKind::Alternation, node)))
 }
@@ -266,4 +266,21 @@ mod test {
      let result = parse_expressions(source).unwrap();
      assert_yaml_snapshot!(result)
     }
+    #[test]
+    fn alternation_precidence() {
+     let source = r"
+         filter ::= 'a' | 'b' 'c';
+     ";
+     let result = parse_expressions(source).unwrap();
+     assert_yaml_snapshot!(result)
+    }
+    #[test]
+    fn alternation_precidence_group() {
+     let source = r"
+         filter ::= 'a' | ('b' 'c');
+     ";
+     let result = parse_expressions(source).unwrap();
+     assert_yaml_snapshot!(result)
+    }
+
 }
