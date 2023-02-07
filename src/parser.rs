@@ -279,9 +279,41 @@ mod test {
         assert_yaml_snapshot!(result)
     }
     #[test]
+    fn alternation_precidence_multiple() {
+        let source = r"
+         filter ::= 'a' | 'b' | 'c';
+     ";
+        let result = parse_expressions(source).unwrap();
+        assert_yaml_snapshot!(result)
+    }
+    #[test]
+    fn alternation_precidence_nested() {
+        let source = r"
+         filter ::= 'a' | 'b'  'c' | 'd';
+     ";
+        let result = parse_expressions(source).unwrap();
+        assert_yaml_snapshot!(result)
+    }
+    #[test]
     fn alternation_precidence_group() {
         let source = r"
          filter ::= 'a' | ('b' 'c');
+     ";
+        let result = parse_expressions(source).unwrap();
+        assert_yaml_snapshot!(result)
+    }
+    #[test]
+    fn concat_precidence() {
+        let source = r"
+         filter ::= 'a' | 'b' , 'c' , 'd';
+     ";
+        let result = parse_expressions(source).unwrap();
+        assert_yaml_snapshot!(result)
+    }
+    #[test]
+    fn concat_precidence_reverse() {
+        let source = r"
+         filter ::= 'a' , 'b' , 'c' | 'd';
      ";
         let result = parse_expressions(source).unwrap();
         assert_yaml_snapshot!(result)

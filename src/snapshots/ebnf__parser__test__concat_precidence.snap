@@ -1,0 +1,18 @@
+---
+source: src/parser.rs
+expression: result
+---
+- "\n         filter ::= 'a' | 'b' , 'c' , 'd';\n     "
+- - lhs: filter
+    rhs:
+      Symbol:
+        - String: a
+        - Alternation
+        - Symbol:
+            - String: b
+            - Concatenation
+            - Symbol:
+                - String: c
+                - Concatenation
+                - String: d
+
