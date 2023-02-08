@@ -1,0 +1,22 @@
+on: [pull_request]
+
+jobs:
+  build_test:
+    runs-on: ubuntu-latest
+    name: Build and Test
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v1
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+      - name: Check build (Strict)
+        uses: actions-rs/cargo@v1
+        with:
+          command: build
+          args: --verbose --release --features "strict"
+      - name: Run tests
+        uses: action-rs/cargo@v1
+        with:
+          command: test
+          args: --verbose
