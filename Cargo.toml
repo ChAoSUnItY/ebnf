@@ -10,6 +10,9 @@ keywords = ["ebnf", "bnf"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
+[features]
+strict = []
+
 [dependencies]
 nom = "7"
 parse-hyperlinks = "0.23.3"
