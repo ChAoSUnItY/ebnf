@@ -94,7 +94,7 @@ fn parse_node(input: &str) -> Res<&str, Node> {
     let optional_regex_ext: Res<&str, RegexExtKind> = parse_regex_ext(input);
 
     match optional_regex_ext {
-        Ok(((s, regex_ext_kind))) => {
+        Ok((s, regex_ext_kind)) => {
             input = s;
             left_node = Node::RegexExt(Box::new(left_node), regex_ext_kind);
         }
@@ -214,6 +214,7 @@ pub(crate) fn parse_expressions(input: &str) -> Res<&str, Vec<Expression>> {
 
     Ok((input, expressions))
 }
+
 #[cfg(test)]
 mod test {
     use super::*;
@@ -228,10 +229,11 @@ mod test {
             Digits ::= #'[0-9]+';
         ";
 
-        let (input, vec) = parse_expressions(src).unwrap();
+        let (_, vec) = parse_expressions(src).unwrap();
 
         println!("{:#?}", vec);
     }
+
     #[test]
     fn simple_alternation() {
         let source = r"
@@ -242,6 +244,7 @@ mod test {
         let result = parse_expressions(source).unwrap();
         assert_yaml_snapshot!(result)
     }
+
     #[test]
     fn space_before_semi() {
         let source = r"
@@ -252,6 +255,7 @@ mod test {
         let result = parse_expressions(source).unwrap();
         assert_yaml_snapshot!(result)
     }
+
     #[test]
     fn underscore() {
         let source = r"
@@ -261,6 +265,7 @@ mod test {
         let result = parse_expressions(source).unwrap();
         assert_yaml_snapshot!(result)
     }
+
     #[test]
     fn multiple_underscores() {
         let source = r"
@@ -270,6 +275,7 @@ mod test {
         let result = parse_expressions(source).unwrap();
         assert_yaml_snapshot!(result)
     }
+
     #[test]
     fn alternation_precidence() {
         let source = r"
@@ -278,6 +284,7 @@ mod test {
         let result = parse_expressions(source).unwrap();
         assert_yaml_snapshot!(result)
     }
+
     #[test]
     fn alternation_precidence_multiple() {
         let source = r"
@@ -286,6 +293,7 @@ mod test {
         let result = parse_expressions(source).unwrap();
         assert_yaml_snapshot!(result)
     }
+
     #[test]
     fn alternation_precidence_nested() {
         let source = r"
@@ -294,6 +302,7 @@ mod test {
         let result = parse_expressions(source).unwrap();
         assert_yaml_snapshot!(result)
     }
+
     #[test]
     fn alternation_precidence_group() {
         let source = r"
@@ -302,6 +311,7 @@ mod test {
         let result = parse_expressions(source).unwrap();
         assert_yaml_snapshot!(result)
     }
+
     #[test]
     fn concat_precidence() {
         let source = r"
@@ -310,6 +320,7 @@ mod test {
         let result = parse_expressions(source).unwrap();
         assert_yaml_snapshot!(result)
     }
+
     #[test]
     fn concat_precidence_reverse() {
         let source = r"
