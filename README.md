@@ -1,5 +1,9 @@
 # ebnf
 
+[![Crates.io](https://img.shields.io/crates/v/ebnf)](https://crates.io/crates/ebnf)
+[![Docs](https://docs.rs/ebnf/badge.svg)](https://docs.rs/ebnf/)
+[![.github/workflows/push.yml](https://github.com/ChAoSUnItY/ebnf/actions/workflows/push.yml/badge.svg)](https://github.com/ChAoSUnItY/ebnf/actions/workflows/push.yml)
+
 > A successor bnf parsing library of bnf parsing library, for parsing Extended Backus–Naur form context-free grammars
 
 The code is available on [GitHub](https://github.com/ChAoSUnItY/ebnf)

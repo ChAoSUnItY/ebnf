@@ -1,6 +1,9 @@
-name: Pull Request CI
+name: CI
 
-on: [pull_request]
+on:
+  push:
+    branches:
+      - main
 
 jobs:
   build_test:
