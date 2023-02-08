@@ -11,12 +11,6 @@ jobs:
         with:
           toolchain: stable
       - name: Check build (Strict)
-        uses: actions-rs/cargo@v1
-        with:
-          command: build
-          args: --verbose --release --features "strict"
+        run: cargo build --verbose --release --features "strict"
       - name: Run tests
-        uses: action-rs/cargo@v1
-        with:
-          command: test
-          args: --verbose
+        run: cargo test --verbose
