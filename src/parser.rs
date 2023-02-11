@@ -1,10 +1,13 @@
+use std::str;
+
 use nom::{
     branch::alt,
     bytes::complete::{tag, take_until},
     character::complete,
+    combinator::recognize,
     error::{VerboseError, VerboseErrorKind},
-    multi::many1,
-    sequence::{delimited, preceded, terminated},
+    multi::{many0_count, many1},
+    sequence::{delimited, pair, preceded, terminated},
     Err, IResult,
 };
 
@@ -17,14 +20,17 @@ use crate::{
 
 type Res<T, U> = IResult<T, U, VerboseError<T>>;
 
-fn parse_lhs(input: &str) -> Res<&str, String> {
-    let (input, lhs) = preceded(
-        complete::multispace0,
-        many1(alt((complete::alphanumeric1, tag("_")))),
-    )(input)?;
-    let (input, _) = preceded(complete::multispace0, alt((tag("="), tag("::="))))(input)?;
+pub fn identifier(input: &str) -> Res<&str, &str> {
+    recognize(pair(
+        alt((complete::alpha1, tag("_"))),
+        many0_count(alt((complete::alphanumeric1, tag("_")))),
+    ))(input)
+}
 
-    Ok((input, lhs.join("").trim_end().to_owned()))
+fn parse_lhs(input: &str) -> Res<&str, &str> {
+    let (input, lhs) = preceded(complete::multispace0, identifier)(input)?;
+    let (input, _) = preceded(complete::multispace0, alt((tag("="), tag("::="))))(input)?;
+    Ok((input, lhs))
 }
 
 fn parse_rhs(input: &str) -> Res<&str, Node> {
@@ -60,13 +66,10 @@ fn parse_regex_string(input: &str) -> Res<&str, Node> {
 fn parse_terminal(input: &str) -> Res<&str, Node> {
     let (input, symbol) = preceded(
         complete::multispace0,
-        terminated(
-            many1(alt((complete::alphanumeric1, tag("_")))),
-            complete::multispace0,
-        ),
+        terminated(identifier, complete::multispace0),
     )(input)?;
 
-    Ok((input, Node::Terminal(symbol.join(""))))
+    Ok((input, Node::Terminal(symbol.to_string())))
 }
 
 fn parse_multiple(input: &str) -> Res<&str, Node> {
