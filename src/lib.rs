@@ -1,4 +1,5 @@
-#![cfg_attr(feature = "strict", deny(warnings))]
+#![cfg_attr(not(test), no_std)]
+#![deny(warnings)]
 
 //! ebnf - A successor bnf parsing library of bnf parsing library, for parsing Extended Backus–Naur form context-free grammars
 //!
@@ -37,15 +38,18 @@
 //! }
 //! ```
 
+extern crate alloc;
 extern crate nom;
 extern crate parse_hyperlinks;
+
+pub use expression::Expression;
+pub use grammar::Grammar;
+pub use node::{Node, RegexExtKind, SymbolKind};
+
 mod expression;
 mod grammar;
 mod node;
 mod parser;
-pub use expression::Expression;
-pub use grammar::Grammar;
-pub use node::{Node, RegexExtKind, SymbolKind};
 
 /// Get and parse EBNF grammar source into [Grammar], returns [Err] when given grammar is invalid.
 /// 
