@@ -1,6 +1,6 @@
 [package]
 name = "ebnf"
-version = "0.1.3"
+version = "0.1.4"
 edition = "2021"
 license = "MIT"
 description = "A successor bnf parsing library of bnf parsing library, for parsing Extended Backus–Naur form context-free grammars"
