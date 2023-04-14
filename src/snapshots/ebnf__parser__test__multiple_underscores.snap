@@ -2,7 +2,7 @@
 source: src/parser.rs
 expression: result
 ---
-- "\n         filter ::= a_b_cat;\n         a_b_cat ::= 'a' | 'b';\n     "
+- "\n             filter ::= a_b_cat;\n             a_b_cat ::= 'a' | 'b';\n        "
 - - lhs: filter
     rhs:
       Terminal: a_b_cat

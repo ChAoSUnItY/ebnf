@@ -2,7 +2,7 @@
 source: src/parser.rs
 expression: result
 ---
-- "\n         filter ::= 'a' | 'b' | 'c';\n     "
+- "\n             filter ::= 'a' | 'b' | 'c';\n        "
 - - lhs: filter
     rhs:
       Symbol:
