@@ -1,5 +1,7 @@
 use std::str;
 
+use nom::bytes::complete::escaped;
+use nom::character::complete::{none_of, one_of};
 use nom::{
     branch::alt,
     bytes::complete::{tag, take_until},
@@ -10,13 +12,11 @@ use nom::{
     sequence::{delimited, pair, preceded, terminated},
     Err, IResult,
 };
-use nom::bytes::complete::escaped;
-use nom::character::complete::{none_of, one_of};
 use parse_hyperlinks::take_until_unbalanced;
 
 use crate::{
-    Expression,
-    node::{RegexExtKind, SymbolKind}, Node,
+    node::{RegexExtKind, SymbolKind},
+    Expression, Node,
 };
 
 type Res<T, U> = IResult<T, U, VerboseError<T>>;
@@ -48,8 +48,16 @@ fn parse_rhs(input: &str) -> Res<&str, Node> {
 
 fn parse_string(input: &str) -> Res<&str, Node> {
     let (input, string) = alt((
-        delimited(complete::char('\''), escaped(none_of("\'"), '\\', one_of(r#"tbnrf/\'"#)), complete::char('\'')),
-        delimited(complete::char('"'), escaped(none_of("\""), '\\', one_of(r#"tbnrf/\""#)), complete::char('"')),
+        delimited(
+            complete::char('\''),
+            escaped(none_of("\'"), '\\', one_of(r#"tbnrf/\'"#)),
+            complete::char('\''),
+        ),
+        delimited(
+            complete::char('"'),
+            escaped(none_of("\""), '\\', one_of(r#"tbnrf/\""#)),
+            complete::char('"'),
+        ),
     ))(input)?;
 
     Ok((input, Node::String(string.to_string())))
@@ -57,8 +65,16 @@ fn parse_string(input: &str) -> Res<&str, Node> {
 
 fn parse_regex_string(input: &str) -> Res<&str, Node> {
     let (input, string) = alt((
-        delimited(tag("#'"), escaped(none_of("\'"), '\\', one_of(r#"tbnrf/\'"#)), complete::char('\'')),
-        delimited(tag("#\""), escaped(none_of("\""), '\\', one_of(r#"tbnrf/\""#)), complete::char('"')),
+        delimited(
+            tag("#'"),
+            escaped(none_of("\'"), '\\', one_of(r#"tbnrf/\'"#)),
+            complete::char('\''),
+        ),
+        delimited(
+            tag("#\""),
+            escaped(none_of("\""), '\\', one_of(r#"tbnrf/\""#)),
+            complete::char('"'),
+        ),
     ))(input)?;
 
     Ok((input, Node::RegexString(string.to_string())))
