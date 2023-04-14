@@ -21,7 +21,7 @@ use crate::{
 
 type Res<T, U> = IResult<T, U, VerboseError<T>>;
 
-pub fn identifier(input: &str) -> Res<&str, &str> {
+fn identifier(input: &str) -> Res<&str, &str> {
     recognize(pair(
         alt((complete::alpha1, tag("_"))),
         many0_count(alt((complete::alphanumeric1, tag("_")))),
