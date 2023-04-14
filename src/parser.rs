@@ -50,12 +50,12 @@ fn parse_string(input: &str) -> Res<&str, Node> {
     let (input, string) = alt((
         delimited(
             complete::char('\''),
-            escaped(none_of("\'"), '\\', one_of(r#"tbnrf/\'"#)),
+            escaped(none_of("\\\'"), '\\', one_of(r#"tbnrf/\'"#)),
             complete::char('\''),
         ),
         delimited(
             complete::char('"'),
-            escaped(none_of("\""), '\\', one_of(r#"tbnrf/\""#)),
+            escaped(none_of("\\\""), '\\', one_of(r#"tbnrf/\""#)),
             complete::char('"'),
         ),
     ))(input)?;
@@ -67,12 +67,12 @@ fn parse_regex_string(input: &str) -> Res<&str, Node> {
     let (input, string) = alt((
         delimited(
             tag("#'"),
-            escaped(none_of("\'"), '\\', one_of(r#"tbnrf/\'"#)),
+            escaped(none_of("\\\'"), '\\', one_of(r#"tbnrf/\'"#)),
             complete::char('\''),
         ),
         delimited(
             tag("#\""),
-            escaped(none_of("\""), '\\', one_of(r#"tbnrf/\""#)),
+            escaped(none_of("\\\""), '\\', one_of(r#"tbnrf/\""#)),
             complete::char('"'),
         ),
     ))(input)?;
