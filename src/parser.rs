@@ -4,7 +4,7 @@ use nom::bytes::complete::escaped;
 use nom::character::complete::{none_of, one_of};
 use nom::{
     branch::alt,
-    bytes::complete::{tag, take_until},
+    bytes::complete::tag,
     character::complete,
     combinator::recognize,
     error::{VerboseError, VerboseErrorKind},
