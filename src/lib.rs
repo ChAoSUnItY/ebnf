@@ -1,4 +1,5 @@
-#![cfg_attr(feature = "strict", deny(warnings))]
+#![no_std]
+#![deny(warnings)]
 
 //! ebnf - A successor bnf parsing library of bnf parsing library, for parsing Extended Backus–Naur form context-free grammars
 //!
@@ -37,8 +38,10 @@
 //! }
 //! ```
 
+extern crate alloc;
 extern crate nom;
 extern crate parse_hyperlinks;
+
 mod expression;
 mod grammar;
 mod node;
