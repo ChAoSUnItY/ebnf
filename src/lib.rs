@@ -52,12 +52,12 @@ mod node;
 mod parser;
 
 /// Get and parse EBNF grammar source into [Grammar], returns [Err] when given grammar is invalid.
-/// 
+///
 /// # Example
-/// 
+///
 /// ```rust
 /// use ebnf::get_grammar;
-/// 
+///
 /// let grammar_literal = r"
 ///     term ::= '1';
 /// ";
