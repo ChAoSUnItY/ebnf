@@ -47,10 +47,18 @@ pub use expression::Expression;
 pub use grammar::Grammar;
 pub use node::{Node, RegexExtKind, SymbolKind};
 
-// get and parse EBNF grammar source into data structure ebnf::Grammar
+/// Get and parse EBNF grammar source into [Grammar], returns [Err] when given grammar is invalid.
+/// 
+/// # Example
+/// 
+/// ```rust
+/// use ebnf::get_grammar;
+/// 
+/// let grammar_literal = r"
+///     term ::= '1';
+/// ";
+/// let grammar = get_grammar(grammar_literal)?;
+/// ```
 pub fn get_grammar(input: &str) -> Result<Grammar, nom::Err<nom::error::VerboseError<&str>>> {
-    match parser::parse_expressions(input) {
-        Ok((_, expressions)) => Ok(Grammar { expressions }),
-        Err(e) => Err(e),
-    }
+    parser::parse_expressions(input).map(|(_, expressions)| Grammar { expressions })
 }
