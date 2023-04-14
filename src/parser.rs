@@ -2,17 +2,18 @@ use nom::{
     branch::alt,
     bytes::complete::{tag, take_until},
     character::complete,
+    Err,
     error::{VerboseError, VerboseErrorKind},
-    multi::many1,
-    sequence::{delimited, preceded, terminated},
-    Err, IResult,
+    IResult,
+    multi::many1, sequence::{delimited, preceded, terminated},
 };
-
+use nom::bytes::complete::escaped;
+use nom::character::complete::{none_of, one_of};
 use parse_hyperlinks::take_until_unbalanced;
 
 use crate::{
-    node::{RegexExtKind, SymbolKind},
-    Expression, Node,
+    Expression,
+    node::{RegexExtKind, SymbolKind}, Node,
 };
 
 type Res<T, U> = IResult<T, U, VerboseError<T>>;
@@ -41,8 +42,8 @@ fn parse_rhs(input: &str) -> Res<&str, Node> {
 
 fn parse_string(input: &str) -> Res<&str, Node> {
     let (input, string) = alt((
-        delimited(complete::char('\''), take_until("'"), complete::char('\'')),
-        delimited(complete::char('"'), take_until("\""), complete::char('"')),
+        delimited(complete::char('\''), escaped(none_of("\'"), '\\', one_of(r#"tbnrf/\'"#)), complete::char('\'')),
+        delimited(complete::char('"'), escaped(none_of("\""), '\\', one_of(r#"tbnrf/\""#)), complete::char('"')),
     ))(input)?;
 
     Ok((input, Node::String(string.to_string())))
@@ -50,8 +51,8 @@ fn parse_string(input: &str) -> Res<&str, Node> {
 
 fn parse_regex_string(input: &str) -> Res<&str, Node> {
     let (input, string) = alt((
-        delimited(tag("#'"), take_until("'"), complete::char('\'')),
-        delimited(tag("#\""), take_until("\""), complete::char('"')),
+        delimited(tag("#'"), escaped(none_of("\'"), '\\', one_of(r#"tbnrf/\'"#)), complete::char('\'')),
+        delimited(tag("#\""), escaped(none_of("\""), '\\', one_of(r#"tbnrf/\""#)), complete::char('"')),
     ))(input)?;
 
     Ok((input, Node::RegexString(string.to_string())))
@@ -217,8 +218,9 @@ pub(crate) fn parse_expressions(input: &str) -> Res<&str, Vec<Expression>> {
 
 #[cfg(test)]
 mod test {
-    use super::*;
     use insta::assert_yaml_snapshot;
+
+    use super::*;
 
     #[test]
     fn test_parse() {
@@ -237,10 +239,10 @@ mod test {
     #[test]
     fn simple_alternation() {
         let source = r"
-         filter ::= a | b;
-         a ::= 'a';
-         b ::= 'b';
-     ";
+            filter ::= a | b;
+            a ::= 'a';
+            b ::= 'b';
+        ";
         let result = parse_expressions(source).unwrap();
         assert_yaml_snapshot!(result)
     }
@@ -248,10 +250,10 @@ mod test {
     #[test]
     fn space_before_semi() {
         let source = r"
-         filter ::= a | b ;
-         a ::= 'a';
-         b ::= 'b';
-     ";
+             filter ::= a | b ;
+             a ::= 'a';
+             b ::= 'b';
+        ";
         let result = parse_expressions(source).unwrap();
         assert_yaml_snapshot!(result)
     }
@@ -259,9 +261,9 @@ mod test {
     #[test]
     fn underscore() {
         let source = r"
-         filter ::= a_b;
-         a_b ::= 'a' | 'b';
-     ";
+             filter ::= a_b;
+             a_b ::= 'a' | 'b';
+        ";
         let result = parse_expressions(source).unwrap();
         assert_yaml_snapshot!(result)
     }
@@ -269,9 +271,9 @@ mod test {
     #[test]
     fn multiple_underscores() {
         let source = r"
-         filter ::= a_b_cat;
-         a_b_cat ::= 'a' | 'b';
-     ";
+             filter ::= a_b_cat;
+             a_b_cat ::= 'a' | 'b';
+        ";
         let result = parse_expressions(source).unwrap();
         assert_yaml_snapshot!(result)
     }
@@ -279,8 +281,8 @@ mod test {
     #[test]
     fn alternation_precidence() {
         let source = r"
-         filter ::= 'a' | 'b' 'c';
-     ";
+             filter ::= 'a' | 'b' 'c';
+        ";
         let result = parse_expressions(source).unwrap();
         assert_yaml_snapshot!(result)
     }
@@ -288,8 +290,8 @@ mod test {
     #[test]
     fn alternation_precidence_multiple() {
         let source = r"
-         filter ::= 'a' | 'b' | 'c';
-     ";
+             filter ::= 'a' | 'b' | 'c';
+        ";
         let result = parse_expressions(source).unwrap();
         assert_yaml_snapshot!(result)
     }
@@ -297,8 +299,8 @@ mod test {
     #[test]
     fn alternation_precidence_nested() {
         let source = r"
-         filter ::= 'a' | 'b'  'c' | 'd';
-     ";
+             filter ::= 'a' | 'b'  'c' | 'd';
+        ";
         let result = parse_expressions(source).unwrap();
         assert_yaml_snapshot!(result)
     }
@@ -306,8 +308,8 @@ mod test {
     #[test]
     fn alternation_precidence_group() {
         let source = r"
-         filter ::= 'a' | ('b' 'c');
-     ";
+             filter ::= 'a' | ('b' 'c');
+        ";
         let result = parse_expressions(source).unwrap();
         assert_yaml_snapshot!(result)
     }
@@ -315,8 +317,8 @@ mod test {
     #[test]
     fn concat_precidence() {
         let source = r"
-         filter ::= 'a' | 'b' , 'c' , 'd';
-     ";
+             filter ::= 'a' | 'b' , 'c' , 'd';
+        ";
         let result = parse_expressions(source).unwrap();
         assert_yaml_snapshot!(result)
     }
@@ -324,8 +326,18 @@ mod test {
     #[test]
     fn concat_precidence_reverse() {
         let source = r"
-         filter ::= 'a' , 'b' , 'c' | 'd';
-     ";
+             filter ::= 'a' , 'b' , 'c' | 'd';
+        ";
+        let result = parse_expressions(source).unwrap();
+        assert_yaml_snapshot!(result)
+    }
+
+    #[test]
+    fn escaped_string() {
+        let source = r#"
+             single_quote ::= '\t\b\n\r\f\/\'';
+             double_quote ::= "\t\b\n\r\f\/\"";
+        "#;
         let result = parse_expressions(source).unwrap();
         assert_yaml_snapshot!(result)
     }
