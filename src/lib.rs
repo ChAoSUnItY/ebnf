@@ -62,6 +62,8 @@ mod parser;
 ///     term ::= '1';
 /// ";
 /// let grammar = get_grammar(grammar_literal)?;
+///
+/// # Ok::<(), nom::Err<nom::error::VerboseError<&str>>>(())
 /// ```
 pub fn get_grammar(input: &str) -> Result<Grammar, nom::Err<nom::error::VerboseError<&str>>> {
     parser::parse_expressions(input).map(|(_, expressions)| Grammar { expressions })
