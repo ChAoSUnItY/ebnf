@@ -7,7 +7,7 @@ use serde::Serialize;
 pub enum Node {
     String(String),
     RegexString(String),
-    Terminal(String),
+    NonTerminal(String),
     Multiple(Vec<Node>),
     RegexExt(Box<Node>, RegexExtKind),
     Symbol(Box<Node>, SymbolKind, Box<Node>),

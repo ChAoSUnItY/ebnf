@@ -5,11 +5,10 @@ expression: result
 - "\n         filter ::= a_b;\n         a_b ::= 'a' | 'b';\n     "
 - - lhs: filter
     rhs:
-      Terminal: a_b
+      NonTerminal: a_b
   - lhs: a_b
     rhs:
       Symbol:
         - String: a
         - Alternation
         - String: b
-

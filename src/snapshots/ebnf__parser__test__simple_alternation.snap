@@ -6,13 +6,12 @@ expression: result
 - - lhs: filter
     rhs:
       Symbol:
-        - Terminal: a
+        - NonTerminal: a
         - Alternation
-        - Terminal: b
+        - NonTerminal: b
   - lhs: a
     rhs:
       String: a
   - lhs: b
     rhs:
       String: b
-

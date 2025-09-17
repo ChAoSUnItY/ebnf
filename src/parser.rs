@@ -82,13 +82,13 @@ fn parse_regex_string(input: &str) -> Res<&str, Node> {
     Ok((input, Node::RegexString(string.to_string())))
 }
 
-fn parse_terminal(input: &str) -> Res<&str, Node> {
+fn parse_non_terminal(input: &str) -> Res<&str, Node> {
     let (input, symbol) = preceded(
         complete::multispace0,
         terminated(identifier, complete::multispace0),
     )(input)?;
 
-    Ok((input, Node::Terminal(symbol.to_string())))
+    Ok((input, Node::NonTerminal(symbol.to_string())))
 }
 
 fn parse_multiple(input: &str) -> Res<&str, Node> {
@@ -109,7 +109,7 @@ fn parse_node(input: &str) -> Res<&str, Node> {
             parse_repeat,
             parse_string,
             parse_regex_string,
-            parse_terminal,
+            parse_non_terminal,
         )),
     )(input)?;
 
